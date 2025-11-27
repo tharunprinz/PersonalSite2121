@@ -1,13 +1,5 @@
-# Full updated Flask app with lightbox
+# Professional Portfolio Website — Neon Aura, Section Cards, Lightbox
 
-"""
-Professional one-file Flask site — responsive, animated, model+dance portfolio,
-projects + certifications, YouTube & Instagram links, resume download, and image lightbox.
-
-Place your assets in ./static/ as listed below and run:
-source .venv/bin/activate
-python professional_personal_website.py
-"""
 from flask import Flask, render_template_string, send_from_directory, abort, url_for
 import os
 
@@ -17,25 +9,39 @@ PERSON = {
     "name": "THARUN R",
     "title": "Software Engineer • CYBER SECURITY Enthusiast • Model & Dancer",
     "linkedin": "https://www.linkedin.com/in/tharun021/",
+    "github": "https://github.com/tharunprinz",  # 👈 NEW
     "email": "tharunr2121@gmail.com",
     "youtube": "https://www.youtube.com/@tharunr21",
     "instagram": "https://www.instagram.com/thxrun21/",
     "profile_image": "profile.jpeg",
     "resume_filename": "resume.pdf",
     "model_9_16": [
-        "model1.jpeg","model2.jpeg","model3.jpeg",
-        "model4.jpg","model5.jpeg","model6.jpeg"
+        "model1.jpeg", "model2.jpeg", "model3.jpeg",
+        "model4.jpg", "model5.jpeg", "model6.jpeg"
     ],
-    "model_16_9": ["wide1.jpg","wide2.jpg"],
+    "model_16_9": ["wide1.jpg", "wide2.jpg"],
     "dance_video_id": "vC0yDgson3Y",
+    "dance_video_title": "Dhruva 2k21 at KCE",
     "dance_video_url": "https://youtu.be/vC0yDgson3Y",
     "projects": [
-        {"title": "Secure API Platform","desc": "Design and implementation of auth-first microservices."},
-        {"title": "ML Monitoring Pipeline","desc": "End-to-end pipeline for model validation & alerts."}
+        {"title": "Ecommerce Site", "desc": "Responsive ecommerce UI using HTML, CSS, JS"},
+        {"title": "Face Recognition", "desc": "Detects Registered Person using Python and OpenCV"},
+        {"title": "Malware Scanner Using Yara", "desc": "Detects malware-infected files via YARA rules"}
     ],
     "certifications": [
-        {"title": "CEH (Certified Ethical Hacker)","issuer": "EC-Council"},
-        {"title": "AWS Solutions Architect Associate","issuer": "Amazon"}
+        {"title": "CYBER SECURITY AND NETWORKING 2k24", "issuer": "SYSTECH"},
+        {"title": "Diploma in Computer Programming with a focus on C, C++, and Python (2k23)", "issuer": "IFC-INFOTECH Computer Education"}
+    ],
+    "achievements": [
+        "Winner — Application Development (National Science Day) at KCE College (1st PRICE)2k23",
+        "RUNWAY MODEL - Aura Fashion Castle 2k25",
+        "Salesforce - Trailhead Agentblazer Champion and Innovator badge"
+    ],
+    "participations": [
+        "National-level Generative Ai Hackathon at Manakula Vinayaka College 2k23 (PONDICHERRY)",
+        "Googlethon - Generative Ai Hackathon at SNS College 2k23",
+        "Material Data Science Workshop at IIT Madras 2024",
+        "Dance performances at multiple college fests",
     ]
 }
 
@@ -52,77 +58,563 @@ INDEX_HTML = r"""
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
-    :root{--bg-1:#071124;--bg-2:#0b1830;--accent:#6ee7b7;--muted:#9aa4b2;--glass:rgba(255,255,255,0.04);--card-shadow:0 12px 40px rgba(2,6,23,0.6);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial}
-    html,body{margin:0;background:linear-gradient(var(--bg-1),var(--bg-2));color:#eaf4ff;overflow-x:hidden}
-    .container{max-width:1100px;margin:28px auto;padding:16px;position:relative;z-index:2}
-    .hero{display:grid;grid-template-columns:1fr 320px;gap:22px}
-    .card{background:rgba(255,255,255,0.03);border-radius:14px;padding:18px;box-shadow:var(--card-shadow);backdrop-filter:blur(6px)}
-    h1{margin:0;font-size:30px}.subtitle{color:var(--muted);margin-bottom:8px}.lead{color:#cfeef0;margin-top:8px;line-height:1.45}
-    .buttons{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.btn{padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.06);background:var(--glass);display:flex;gap:8px;align-items:center;text-decoration:none;color:#eaf4ff;transition:.2s}.btn:hover{transform:translateY(-6px);box-shadow:0 14px 30px rgba(0,0,0,0.5)}.btn.primary{background:linear-gradient(90deg,#6ee7b733,#7c3aed22)}
-    .profile-panel{text-align:center;position:sticky;top:20px}.profile-panel img{width:150px;height:150px;border-radius:16px;object-fit:cover;border:3px solid rgba(255,255,255,0.04)}
+    :root{
+      --bg-1:#071124;
+      --bg-2:#0b1830;
+      --accent:#6ee7b7;
+      --accent-soft:rgba(110,231,183,0.25);
+      --muted:#9aa4b2;
+      --glass:rgba(255,255,255,0.04);
+      --border-soft:rgba(148,163,184,0.25);
+      --card-shadow:0 18px 45px rgba(15,23,42,0.85);
+      font-family:Inter,system-ui,"Segoe UI",Roboto,Arial;
+    }
+    html,body{
+      margin:0;
+      background:radial-gradient(circle at top,#0f172a 0,#020617 52%,#000 100%);
+      color:#e2ebff;
+      overflow-x:hidden;
+    }
+    .container{
+      max-width:1100px;
+      margin:28px auto 40px;
+      padding:16px;
+    }
 
-    /* modeling gallery */
-    .vertical-gallery{display:grid;grid-template-columns:repeat(3,160px);gap:12px;justify-content:center}
-    .vertical-tile{width:160px;border-radius:10px;overflow:hidden;background:#061021;box-shadow:0 10px 30px rgba(0,0,0,0.45);position:relative;transition:.25s}
-    .vertical-tile::before{content:"";display:block;padding-top:177.78%}
-    .vertical-tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;cursor:pointer}
-    .vertical-tile:hover{transform:translateY(-6px)}
+    /* HERO + AURA */
+    .hero{
+      text-align:center;
+      margin-bottom:28px;
+      position:relative;
+    }
+    .aura-wrapper{
+      position:relative;
+      width:190px;
+      height:190px;
+      margin:0 auto 8px;
+    }
+    .aura{
+      position:absolute;
+      inset:0;
+      border-radius:50%;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(110,231,183,0.7), transparent 60%),
+        radial-gradient(circle at 70% 80%, rgba(59,130,246,0.6), transparent 60%);
+      filter:blur(20px);
+      animation:pulse 3s infinite ease-in-out;
+      opacity:.75;
+    }
+    .aura-ring{
+      position:absolute;
+      inset:-6px;
+      border-radius:50%;
+      border:1px dashed rgba(148,163,184,0.55);
+      animation:spin 14s linear infinite;
+      pointer-events:none;
+    }
+    .hero-pfp{
+      position:relative;
+      width:190px;
+      height:190px;
+      border-radius:50%;
+      object-fit:cover;
+      border:3px solid rgba(248,250,252,0.14);
+      box-shadow:0 22px 40px rgba(15,23,42,0.9);
+      z-index:2;
+    }
+    @keyframes pulse{
+      0%{transform:scale(1);opacity:.6}
+      50%{transform:scale(1.25);opacity:1}
+      100%{transform:scale(1);opacity:.6}
+    }
+    @keyframes spin{
+      from{transform:rotate(0deg);}
+      to{transform:rotate(360deg);}
+    }
+    h1{
+      margin:10px 0 0;
+      font-size:32px;
+      letter-spacing:0.04em;
+    }
+    .subtitle{
+      color:var(--muted);
+      margin-top:6px;
+      font-size:17px;
+      min-height:24px;
+    }
+    .lead{
+      color:#cfeef0;
+      line-height:1.5;
+      margin:10px auto 0;
+      max-width:620px;
+      font-size:15px;
+    }
 
-    .wide-gallery{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
-.wide-tile{position:relative;border-radius:10px;overflow:hidden;background:#061021;box-shadow:0 12px 34px rgba(0,0,0,0.45)}
-.wide-tile::before{content:"";display:block;padding-top:56.25%} /* 16:9 ratio */
-.wide-tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}.wide-tile{border-radius:10px;overflow:hidden}
+    /* BUTTONS */
+    .buttons{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:center;
+      margin-top:16px;
+    }
+    .btn{
+      padding:8px 13px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,0.45);
+      background:linear-gradient(135deg,rgba(15,23,42,0.9),rgba(15,23,42,0.6));
+      display:flex;
+      gap:8px;
+      align-items:center;
+      color:#eaf4ff;
+      text-decoration:none;
+      font-size:14px;
+      box-shadow:0 10px 24px rgba(15,23,42,0.8);
+      backdrop-filter:blur(10px);
+      transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+    }
+    .btn i{font-size:15px;}
+    .btn:hover{
+      transform:translateY(-4px);
+      box-shadow:0 18px 35px rgba(15,23,42,0.95);
+      border-color:var(--accent-soft);
+      background:linear-gradient(135deg,rgba(15,23,42,0.95),rgba(30,64,175,0.85));
+    }
+    .btn.primary{
+      background:linear-gradient(135deg,rgba(56,189,248,0.16),rgba(129,230,217,0.2));
+      border-color:rgba(94,234,212,0.5);
+    }
+    .btn.small{
+      padding:6px 11px;
+      font-size:13px;
+      box-shadow:none;
+    }
 
-    /* Lightbox styles */
-    .lightbox{position:fixed;inset:0;background:rgba(3,6,12,0.85);display:none;align-items:center;justify-content:center;z-index:9999;padding:24px}
-    .lightbox.open{display:flex}
-    .lightbox-content{max-width:1100px;width:100%;max-height:90vh;display:grid;grid-template-columns:1fr 320px;gap:18px}
-    .lightbox-img{background:#000;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center}
-    .lightbox-img img{max-width:100%;max-height:90vh;object-fit:contain;display:block}
-    .lightbox-side{color:#eaf4ff}
-    .side-actions{display:flex;gap:10px;margin-top:12px}
-    .action-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);cursor:pointer}
+    /* SECTION CARDS */
+    .section-card{
+      margin-top:22px;
+      padding:18px 20px 18px;
+      border-radius:18px;
+      background:
+        radial-gradient(circle at top left, rgba(56,189,248,0.08), transparent 60%),
+        radial-gradient(circle at bottom right, rgba(129,230,217,0.06), transparent 55%),
+        rgba(15,23,42,0.9);
+      border:1px solid var(--border-soft);
+      box-shadow:var(--card-shadow);
+      backdrop-filter:blur(12px);
+    }
+    .section-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .section-title{
+      font-size:18px;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+      color:#e5edff;
+    }
+    .section-tag{
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.16em;
+      color:var(--muted);
+      padding:4px 10px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,0.3);
+      background:rgba(15,23,42,0.8);
+    }
 
-    @media(max-width:900px){.vertical-gallery{grid-template-columns:repeat(2,1fr)}.lightbox-content{grid-template-columns:1fr}}
-    @media(max-width:650px){.hero{grid-template-columns:1fr}.profile-panel{position:static}}
+    /* PROJECT, CERT, LIST STYLES */
+    .pill-list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      margin:0;
+      padding:0;
+      list-style:none;
+    }
+    .pill-item{
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(148,163,184,0.35);
+      background:linear-gradient(135deg,rgba(15,23,42,0.85),rgba(15,23,42,0.65));
+    }
+    .pill-item-title{
+      font-weight:600;
+      font-size:14px;
+    }
+    .pill-item-sub{
+      color:var(--muted);
+      font-size:13px;
+      margin-top:2px;
+    }
+    .bullet-list{
+      margin:0;
+      padding-left:18px;
+      color:#d1e5ff;
+      font-size:14px;
+    }
+    .bullet-list li{
+      margin-bottom:5px;
+    }
+
+    /* DANCE VIDEO CARD */
+    .dance-card{
+      display:flex;
+      gap:16px;
+      align-items:stretch;
+      flex-wrap:wrap;
+    }
+    .dance-thumb{
+      display:block;
+      max-width:360px;
+      border-radius:16px;
+      overflow:hidden;
+      position:relative;
+      flex:0 0 auto;
+      box-shadow:0 18px 40px rgba(0,0,0,0.85);
+      border:1px solid rgba(30,64,175,0.7);
+    }
+    .dance-thumb img{
+      width:100%;
+      display:block;
+      transition:transform .25s ease;
+    }
+    .dance-thumb::after{
+      content:"Watch on YouTube";
+      position:absolute;
+      bottom:8px;
+      right:10px;
+      padding:4px 10px;
+      border-radius:999px;
+      background:rgba(15,23,42,0.86);
+      border:1px solid rgba(148,163,184,0.7);
+      font-size:11px;
+      color:#e5edff;
+    }
+    .dance-thumb:hover img{
+      transform:scale(1.03);
+    }
+    .dance-meta{
+      flex:1 1 220px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      gap:6px;
+      min-width:0;
+    }
+    .dance-meta-title{
+      font-size:17px;
+      font-weight:600;
+    }
+    .dance-meta-sub{
+      font-size:13px;
+      color:var(--muted);
+    }
+
+    /* MODELING GALLERIES */
+    .portfolio-wrapper{
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+    .vertical-gallery{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:12px;
+      justify-content:center;
+    }
+    .vertical-tile, .wide-tile{
+      border-radius:14px;
+      overflow:hidden;
+      background:#020617;
+      box-shadow:0 14px 35px rgba(0,0,0,0.9);
+      cursor:pointer;
+      position:relative;
+      border:1px solid rgba(15,23,42,0.9);
+    }
+    .vertical-tile::before{content:"";display:block;padding-top:177%;}
+    .vertical-tile img{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      transition:transform .25s ease, filter .25s ease;
+    }
+    .vertical-tile:hover img{
+      transform:scale(1.05);
+      filter:brightness(1.08);
+    }
+
+    .wide-gallery{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+    .wide-tile::before{content:"";display:block;padding-top:56.25%;}
+    .wide-tile img{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      transition:transform .25s ease, filter .25s ease;
+    }
+    .wide-tile:hover img{
+      transform:scale(1.04);
+      filter:brightness(1.06);
+    }
+
+    /* FEEDBACK BOX */
+    .feedback-box textarea{
+      width:100%;
+      height:90px;
+      border-radius:12px;
+      border:1px solid rgba(148,163,184,0.45);
+      padding:10px 12px;
+      background:rgba(15,23,42,0.95);
+      color:#eaf4ff;
+      font-size:14px;
+      resize:none;
+      outline:none;
+    }
+    .feedback-box textarea::placeholder{
+      color:rgba(148,163,184,0.8);
+    }
+    .feedback-box button{
+      margin-top:10px;
+      padding:9px 16px;
+      border-radius:999px;
+      background:linear-gradient(135deg,rgba(129,230,217,0.25),rgba(56,189,248,0.3));
+      border:1px solid rgba(94,234,212,0.8);
+      color:#f9fafb;
+      cursor:pointer;
+      font-size:14px;
+      font-weight:500;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      box-shadow:0 12px 30px rgba(15,23,42,0.9);
+      transition:transform .2s ease, box-shadow .2s ease;
+    }
+    .feedback-box button:hover{
+      transform:translateY(-3px);
+      box-shadow:0 18px 40px rgba(15,23,42,1);
+    }
+
+    /* LIGHTBOX */
+    .lightbox{
+      position:fixed;
+      inset:0;
+      background:rgba(3,6,12,0.9);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:9999;
+      padding:24px;
+    }
+    .lightbox.open{display:flex;}
+    .lightbox-content{
+      max-width:1100px;
+      width:100%;
+      max-height:90vh;
+      display:grid;
+      grid-template-columns:1fr 320px;
+      gap:18px;
+    }
+    .lightbox-img{
+      background:#020617;
+      border-radius:16px;
+      padding:10px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border:1px solid rgba(30,64,175,0.7);
+      box-shadow:0 24px 60px rgba(0,0,0,0.95);
+    }
+    .lightbox-img img{
+      max-width:100%;
+      max-height:86vh;
+      object-fit:contain;
+      display:block;
+    }
+    .lightbox-side{
+      color:#eaf4ff;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .side-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:6px;
+    }
+    .action-btn{
+      padding:9px 12px;
+      border-radius:999px;
+      background:rgba(15,23,42,0.95);
+      border:1px solid rgba(148,163,184,0.6);
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      font-size:13px;
+    }
+    .action-btn i{font-size:14px;}
+
+    .lightbox-note{
+      margin-top:10px;
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    @media(max-width:900px){
+      .lightbox-content{grid-template-columns:1fr;}
+      .lightbox-side{order:-1;}
+    }
+    @media(max-width:720px){
+      .vertical-gallery{grid-template-columns:repeat(2,minmax(0,1fr));}
+      .wide-gallery{grid-template-columns:1fr;}
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="hero">
-      <div class="card" data-aos="fade-up">
-        <h1>{{ person.name }}</h1>
-        <div class="subtitle"><span id="typed"></span></div>
-        <p class="lead">I build secure systems, perform on stage, and model — tech + creativity.</p>
 
-        <div class="buttons">
-          <a class="btn primary" href="{{ person.linkedin }}" target="_blank"><i class="fa-brands fa-linkedin"></i> LinkedIn</a>
-          <a class="btn" href="{{ url_for('download_resume') }}" target="_blank"><i class="fa-solid fa-file-arrow-down"></i> Resume</a>
-          <a class="btn" href="mailto:{{ person.email }}" class="btn"><i class="fa-solid fa-envelope"></i> Email</a>
-          <a class="btn" href="{{ person.youtube }}" target="_blank"><i class="fa-brands fa-youtube"></i> YouTube</a>
-          <a class="btn" href="{{ person.instagram }}" target="_blank"><i class="fa-brands fa-instagram"></i> Instagram</a>
-        </div>
+    <!-- HERO -->
+    <div class="hero" data-aos="fade-up">
+      <div class="aura-wrapper">
+        <div class="aura"></div>
+        <div class="aura-ring"></div>
+        <img src="{{ url_for('static', filename=person.profile_image) }}" class="hero-pfp" alt="Profile">
+      </div>
 
-        <h3 style="margin-top:22px">Projects</h3>
-        <div>
-          {% for p in person.projects %}
-          <p><strong>{{ p.title }}</strong><br><span style="color:var(--muted)">{{ p.desc }}</span></p>
-          {% endfor %}
-        </div>
+      <h1>{{ person.name }}</h1>
+      <div class="subtitle"><span id="typed"></span></div>
+      <p class="lead">
+        I build secure systems, perform on stage, and model — blending technology with creativity.
+      </p>
 
-        <h3>Certifications</h3>
-        <div>
-          {% for c in person.certifications %}
-          <p><strong>{{ c.title }}</strong><br><span style="color:var(--muted)">{{ c.issuer }}</span></p>
-          {% endfor %}
-        </div>
-
-        <h3 style="margin-top:22px">Featured Dance Video</h3>
-        <a href="{{ person.dance_video_url }}" target="_blank" style="display:block;max-width:360px;border-radius:12px;overflow:hidden;">
-          <img src="https://img.youtube.com/vi/{{ person.dance_video_id }}/hqdefault.jpg" style="width:100%;display:block;">
+      <div class="buttons">
+        <a class="btn primary" href="{{ person.linkedin }}" target="_blank">
+          <i class="fa-brands fa-linkedin"></i> LinkedIn
         </a>
+        <a class="btn" href="{{ person.github }}" target="_blank">
+          <i class="fa-brands fa-github"></i> GitHub
+        </a>
+        <a class="btn" href="{{ url_for('download_resume') }}">
+          <i class="fa-solid fa-file-arrow-down"></i> Resume
+        </a>
+        <a class="btn" href="mailto:{{ person.email }}">
+          <i class="fa-solid fa-envelope"></i> Email
+        </a>
+        <a class="btn" href="{{ person.youtube }}" target="_blank">
+          <i class="fa-brands fa-youtube"></i> YouTube
+        </a>
+        <a class="btn" href="{{ person.instagram }}" target="_blank">
+          <i class="fa-brands fa-instagram"></i> Instagram
+        </a>
+      </div>
+    </div>
 
-        <h3 style="margin-top:26px">Modeling Portfolio</h3>
+    <!-- PROJECTS -->
+    <section class="section-card" data-aos="fade-up">
+      <div class="section-header">
+        <h3 class="section-title">Projects</h3>
+        <span class="section-tag">Tech • Builds</span>
+      </div>
+      <ul class="pill-list">
+        {% for p in person.projects %}
+        <li class="pill-item">
+          <div class="pill-item-title">{{ p.title }}</div>
+          <div class="pill-item-sub">{{ p.desc }}</div>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <!-- CERTIFICATIONS -->
+    <section class="section-card" data-aos="fade-up">
+      <div class="section-header">
+        <h3 class="section-title">Certifications</h3>
+        <span class="section-tag">Verified Skills</span>
+      </div>
+      <ul class="pill-list">
+        {% for c in person.certifications %}
+        <li class="pill-item">
+          <div class="pill-item-title">{{ c.title }}</div>
+          <div class="pill-item-sub">{{ c.issuer }}</div>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <!-- ACHIEVEMENTS -->
+    <section class="section-card" data-aos="fade-up">
+      <div class="section-header">
+        <h3 class="section-title">Achievements</h3>
+        <span class="section-tag">Highlights</span>
+      </div>
+      <ul class="bullet-list">
+        {% for a in person.achievements %}
+        <li>{{ a }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <!-- PARTICIPATIONS -->
+    <section class="section-card" data-aos="fade-up">
+      <div class="section-header">
+        <h3 class="section-title">Participations</h3>
+        <span class="section-tag">Involvement</span>
+      </div>
+      <ul class="bullet-list">
+        {% for p in person.participations %}
+        <li>{{ p }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <!-- FEATURED DANCE VIDEO (TITLE UNCHANGED) -->
+    <section class="section-card" data-aos="fade-up">
+      <div class="section-header">
+        <h3 class="section-title">Featured Dance Video</h3>
+        <span class="section-tag">Stage • Performance</span>
+      </div>
+
+      <div class="dance-card">
+        <a href="{{ person.dance_video_url }}" class="dance-thumb" target="_blank" rel="noopener">
+          <img src="https://img.youtube.com/vi/{{ person.dance_video_id }}/hqdefault.jpg"
+               alt="Featured dance video thumbnail">
+        </a>
+        <div class="dance-meta">
+          <div class="dance-meta-title">{{ person.dance_video_title }}</div>
+          <div class="dance-meta-sub">
+            High-energy performance from the Dhruva cultural fest at Karpagam College of Engineering.
+          </div>
+          <div style="margin-top:8px;">
+            <a href="{{ person.dance_video_url }}" class="btn small" target="_blank" rel="noopener">
+              <i class="fa-brands fa-youtube"></i> Watch on YouTube
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODELING PORTFOLIO -->
+    <section class="section-card" data-aos="fade-up">
+      <div class="section-header">
+        <h3 class="section-title">Modeling Portfolio</h3>
+        <span class="section-tag">Visual • Frames</span>
+      </div>
+
+      <div class="portfolio-wrapper">
         <div class="vertical-gallery">
           {% for img in person.model_9_16 %}
           <div class="vertical-tile" data-fname="{{ img }}" data-full="{{ url_for('static', filename=img) }}">
@@ -138,36 +630,47 @@ INDEX_HTML = r"""
           </div>
           {% endfor %}
         </div>
-
       </div>
+    </section>
 
-      <aside class="card profile-panel">
-        <img src="{{ url_for('static', filename=person.profile_image) }}" alt="Profile">
-        <h3>{{ person.name }}</h3>
-        <p style="color:var(--muted)">{{ person.title }}</p>
-        <div class="buttons" style="justify-content:center;">
-          <a class="btn" href="{{ person.linkedin }}" target="_blank"><i class="fa-brands fa-linkedin"></i></a>
-          <a class="btn" href="{{ person.youtube }}" target="_blank"><i class="fa-brands fa-youtube"></i></a>
-          <a class="btn" href="{{ person.instagram }}" target="_blank"><i class="fa-brands fa-instagram"></i></a>
-        </div>
-      </aside>
-    </div>
+    <!-- FEEDBACK (BOTTOM TILE) -->
+    <section class="section-card feedback-box" data-aos="fade-up">
+      <div class="section-header">
+        <h3 class="section-title">Share Your Feedback</h3>
+        <span class="section-tag">Your Thoughts</span>
+      </div>
+      <textarea placeholder="How did you like this portfolio? Any suggestions, opportunities, or feedback are welcome."></textarea>
+      <button onclick="alert('Thank you for your feedback!')">
+        <i class="fa-solid fa-paper-plane"></i> Submit
+      </button>
+    </section>
+
   </div>
 
-  <!-- LIGHTBOX MARKUP -->
+  <!-- LIGHTBOX -->
   <div id="lightbox" class="lightbox" role="dialog" aria-hidden="true">
     <div class="lightbox-content">
       <div class="lightbox-img">
         <img id="lightbox-image" src="" alt="Full image">
       </div>
       <div class="lightbox-side">
-        <h3 id="lb-fname">Filename</h3>
-        <div class="side-actions">
-          <a id="lb-download" class="action-btn" href="#" download><i class="fa-solid fa-arrow-down"></i> Download</a>
-          <button id="lb-like" class="action-btn"><i class="fa-regular fa-heart"></i> <span id="lb-like-count">0</span></button>
-          <button id="lb-share" class="action-btn"><i class="fa-solid fa-share-nodes"></i> Share</button>
+        <div>
+          <h3 id="lb-fname">Image</h3>
+          <div class="side-actions">
+            <a id="lb-download" class="action-btn" href="#" download>
+              <i class="fa-solid fa-arrow-down"></i> Download
+            </a>
+            <button id="lb-like" class="action-btn">
+              <i class="fa-regular fa-heart"></i> <span id="lb-like-count">0</span>
+            </button>
+            <button id="lb-share" class="action-btn">
+              <i class="fa-solid fa-share-nodes"></i> Share
+            </button>
+          </div>
         </div>
-        <div style="margin-top:12px;color:var(--muted)">Click outside to close. Likes are stored locally in your browser.</div>
+        <div class="lightbox-note">
+          Click outside the box to close. Likes are stored locally on your device.
+        </div>
       </div>
     </div>
   </div>
@@ -175,9 +678,19 @@ INDEX_HTML = r"""
   <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
   <script>
     AOS.init({ duration:700, once:true });
-    new Typed('#typed',{strings:["{{ person.title }}","Model • Dancer • Cybersecurity","Open to collaborations"],typeSpeed:36,backSpeed:25,loop:true});
 
-    // LIGHTBOX LOGIC
+    new Typed('#typed', {
+      strings:[
+        "{{ person.title }}",
+        "Developer • Dancer • Model • Cybersecurity",
+        "Open to work and collaborations"
+      ],
+      typeSpeed:36,
+      backSpeed:25,
+      loop:true
+    });
+
+    // LIGHTBOX JS
     const lightbox = document.getElementById('lightbox');
     const lbImage = document.getElementById('lightbox-image');
     const lbFname = document.getElementById('lb-fname');
@@ -192,12 +705,13 @@ INDEX_HTML = r"""
       lbDownload.href = src;
       lightbox.classList.add('open');
       lightbox.setAttribute('aria-hidden', 'false');
-      // load likes from localStorage
-      const likes = JSON.parse(localStorage.getItem('img_likes')||'{}');
-      const count = likes[filename]||0;
+
+      const likes = JSON.parse(localStorage.getItem('img_likes') || '{}');
+      const count = likes[filename] || 0;
       lbLikeCount.textContent = count;
       lbLike.dataset.file = filename;
       lbShare.dataset.file = filename;
+      lbLike.innerHTML = '<i class="fa-regular fa-heart"></i> <span id="lb-like-count">'+count+'</span>';
     }
 
     function closeLightbox(){
@@ -206,45 +720,47 @@ INDEX_HTML = r"""
       lbImage.src = '';
     }
 
-    // attach click on all gallery tiles
-    document.querySelectorAll('.vertical-tile, .wide-tile').forEach(tile=>{
-      tile.addEventListener('click', ()=>{
+    document.querySelectorAll('.vertical-tile, .wide-tile').forEach(tile => {
+      tile.addEventListener('click', () => {
         const src = tile.dataset.full || tile.querySelector('img').src;
         const fname = tile.dataset.fname || src.split('/').pop();
         openLightbox(src, fname);
       });
     });
 
-    // close when clicking outside content
-    lightbox.addEventListener('click', (e)=>{ if(e.target===lightbox) closeLightbox(); });
+    lightbox.addEventListener('click', (e) => {
+      if (e.target === lightbox) closeLightbox();
+    });
 
-    // like button
-    lbLike.addEventListener('click', ()=>{
+    lbLike.addEventListener('click', () => {
       const file = lbLike.dataset.file;
-      const likes = JSON.parse(localStorage.getItem('img_likes')||'{}');
-      likes[file] = (likes[file]||0) + 1;
+      const likes = JSON.parse(localStorage.getItem('img_likes') || '{}');
+      likes[file] = (likes[file] || 0) + 1;
       localStorage.setItem('img_likes', JSON.stringify(likes));
       lbLikeCount.textContent = likes[file];
-      // toggle heart icon to filled
-      lbLike.innerHTML = '<i class="fa-solid fa-heart" style="color:#ff6b81"></i> ' + '<span id="lb-like-count">'+likes[file]+'</span>';
+      lbLike.innerHTML =
+        '<i class="fa-solid fa-heart" style="color:#ff6b81"></i> ' +
+        '<span id="lb-like-count">'+likes[file]+'</span>';
     });
 
-    // share button: use Web Share API if available, else copy link
-    lbShare.addEventListener('click', async ()=>{
+    lbShare.addEventListener('click', async () => {
       const file = lbShare.dataset.file;
       const url = location.origin + '/static/' + file;
-      if(navigator.share){
-        try{ await navigator.share({title: 'Image - ' + file, url}); }
-        catch(err){ console.log('Share cancelled', err); }
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: 'Image - ' + file, url });
+        } catch (err) {
+          console.log('Share cancelled', err);
+        }
       } else {
-        // fallback: copy to clipboard
-        try{ await navigator.clipboard.writeText(url); alert('Image URL copied to clipboard'); }
-        catch(e){ prompt('Copy this URL', url); }
+        try {
+          await navigator.clipboard.writeText(url);
+          alert('Image URL copied to clipboard');
+        } catch (e) {
+          prompt('Copy this URL', url);
+        }
       }
     });
-
-    // download already wired via anchor
-
   </script>
 </body>
 </html>
