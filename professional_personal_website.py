@@ -1,7 +1,8 @@
-# Professional Portfolio Website — Neon Aura, Section Cards, Lightbox
+# Professional Portfolio Website — Neon Aura, Section Cards, Lightbox + Feedback Storage
 
-from flask import Flask, render_template_string, send_from_directory, abort, url_for
+from flask import Flask, render_template_string, send_from_directory, abort, url_for, request, jsonify
 import os
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -9,10 +10,10 @@ PERSON = {
     "name": "THARUN R",
     "title": "Software Engineer • CYBER SECURITY Enthusiast • Model & Dancer",
     "linkedin": "https://www.linkedin.com/in/tharun021/",
-    "github": "https://github.com/tharunprinz",  # 👈 NEW
     "email": "tharunr2121@gmail.com",
     "youtube": "https://www.youtube.com/@tharunr21",
     "instagram": "https://www.instagram.com/thxrun21/",
+    "github": "https://github.com/Tharun021",  # 👈 your GitHub here
     "profile_image": "profile.jpeg",
     "resume_filename": "resume.pdf",
     "model_9_16": [
@@ -25,22 +26,22 @@ PERSON = {
     "dance_video_url": "https://youtu.be/vC0yDgson3Y",
     "projects": [
         {"title": "Ecommerce Site", "desc": "Responsive ecommerce UI using HTML, CSS, JS"},
-        {"title": "Face Recognition", "desc": "Detects Registered Person using Python and OpenCV"},
+        {"title": "Face Recognition", "desc": "Detects registered persons using Python and OpenCV"},
         {"title": "Malware Scanner Using Yara", "desc": "Detects malware-infected files via YARA rules"}
     ],
     "certifications": [
         {"title": "CYBER SECURITY AND NETWORKING 2k24", "issuer": "SYSTECH"},
-        {"title": "Diploma in Computer Programming with a focus on C, C++, and Python (2k23)", "issuer": "IFC-INFOTECH Computer Education"}
+        {"title": "Diploma in Computer Programming — C, C++, Python (2023)", "issuer": "IFC-INFOTECH Computer Education"}
     ],
     "achievements": [
-        "Winner — Application Development (National Science Day) at KCE College (1st PRICE)2k23",
-        "RUNWAY MODEL - Aura Fashion Castle 2k25",
-        "Salesforce - Trailhead Agentblazer Champion and Innovator badge"
+        "Winner — Application Development (National Science Day) at KCE College (1st Prize) 2k23",
+        "RUNWAY MODEL — Aura Fashion Castle 2k25",
+        "Salesforce — Trailhead Agentblazer Champion and Innovator badge"
     ],
     "participations": [
-        "National-level Generative Ai Hackathon at Manakula Vinayaka College 2k23 (PONDICHERRY)",
-        "Googlethon - Generative Ai Hackathon at SNS College 2k23",
-        "Material Data Science Workshop at IIT Madras 2024",
+        "National-level Generative AI Hackathon at Manakula Vinayaka College 2k23 (Pondicherry)",
+        "Googlethon — Generative AI Hackathon at SNS College 2k23",
+        "Materials Data Science Workshop at IIT Madras 2024",
         "Dance performances at multiple college fests",
     ]
 }
@@ -227,7 +228,7 @@ INDEX_HTML = r"""
       background:rgba(15,23,42,0.8);
     }
 
-    /* PROJECT, CERT, LIST STYLES */
+    /* LIST STYLES */
     .pill-list{
       display:flex;
       flex-direction:column;
@@ -261,7 +262,7 @@ INDEX_HTML = r"""
       margin-bottom:5px;
     }
 
-    /* DANCE VIDEO CARD */
+    /* DANCE VIDEO */
     .dance-card{
       display:flex;
       gap:16px;
@@ -315,7 +316,7 @@ INDEX_HTML = r"""
       color:var(--muted);
     }
 
-    /* MODELING GALLERIES */
+    /* MODELING */
     .portfolio-wrapper{
       display:flex;
       flex-direction:column;
@@ -349,7 +350,6 @@ INDEX_HTML = r"""
       transform:scale(1.05);
       filter:brightness(1.08);
     }
-
     .wide-gallery{
       display:grid;
       grid-template-columns:1fr 1fr;
@@ -369,7 +369,7 @@ INDEX_HTML = r"""
       filter:brightness(1.06);
     }
 
-    /* FEEDBACK BOX */
+    /* FEEDBACK */
     .feedback-box textarea{
       width:100%;
       height:90px;
@@ -505,11 +505,11 @@ INDEX_HTML = r"""
         <a class="btn primary" href="{{ person.linkedin }}" target="_blank">
           <i class="fa-brands fa-linkedin"></i> LinkedIn
         </a>
-        <a class="btn" href="{{ person.github }}" target="_blank">
-          <i class="fa-brands fa-github"></i> GitHub
-        </a>
         <a class="btn" href="{{ url_for('download_resume') }}">
           <i class="fa-solid fa-file-arrow-down"></i> Resume
+        </a>
+        <a class="btn" href="{{ person.github }}" target="_blank">
+          <i class="fa-brands fa-github"></i> GitHub
         </a>
         <a class="btn" href="mailto:{{ person.email }}">
           <i class="fa-solid fa-envelope"></i> Email
@@ -581,7 +581,7 @@ INDEX_HTML = r"""
       </ul>
     </section>
 
-    <!-- FEATURED DANCE VIDEO (TITLE UNCHANGED) -->
+    <!-- FEATURED DANCE VIDEO (title on right, heading unchanged) -->
     <section class="section-card" data-aos="fade-up">
       <div class="section-header">
         <h3 class="section-title">Featured Dance Video</h3>
@@ -639,10 +639,11 @@ INDEX_HTML = r"""
         <h3 class="section-title">Share Your Feedback</h3>
         <span class="section-tag">Your Thoughts</span>
       </div>
-      <textarea placeholder="How did you like this portfolio? Any suggestions, opportunities, or feedback are welcome."></textarea>
-      <button onclick="alert('Thank you for your feedback!')">
+      <textarea id="feedback-text" placeholder="How did you like this portfolio? Any suggestions, opportunities, or feedback are welcome."></textarea>
+      <button id="feedback-submit">
         <i class="fa-solid fa-paper-plane"></i> Submit
       </button>
+      <div id="feedback-status" style="margin-top:8px;font-size:13px;color:var(--muted);"></div>
     </section>
 
   </div>
@@ -761,6 +762,36 @@ INDEX_HTML = r"""
         }
       }
     });
+
+    // FEEDBACK SUBMIT (sends to /feedback)
+    const feedbackBtn = document.getElementById('feedback-submit');
+    const feedbackText = document.getElementById('feedback-text');
+    const feedbackStatus = document.getElementById('feedback-status');
+
+    feedbackBtn.addEventListener('click', async () => {
+      const message = feedbackText.value.trim();
+      if (!message) {
+        feedbackStatus.textContent = "Please type something before submitting.";
+        return;
+      }
+      feedbackStatus.textContent = "Sending...";
+      try {
+        const res = await fetch("/feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          feedbackStatus.textContent = "Thank you for your feedback!";
+          feedbackText.value = "";
+        } else {
+          feedbackStatus.textContent = "Error saving feedback. Please try again.";
+        }
+      } catch (err) {
+        feedbackStatus.textContent = "Network error. Please try again.";
+      }
+    });
   </script>
 </body>
 </html>
@@ -776,6 +807,26 @@ def download_resume():
     if os.path.exists(resume_path):
         return send_from_directory(app.static_folder or 'static', PERSON["resume_filename"], as_attachment=True)
     abort(404)
+
+@app.route('/feedback', methods=['POST'])
+def feedback():
+    """Store feedback into a local file and return JSON."""
+    data = request.get_json(silent=True) or {}
+    message = (data.get("message") or "").strip()
+    if not message:
+        return jsonify({"ok": False, "error": "empty"}), 400
+
+    os.makedirs("data", exist_ok=True)
+    feedback_file = os.path.join("data", "feedback.txt")
+    line = f"[{datetime.now().isoformat(timespec='seconds')}] {message}\n"
+
+    with open(feedback_file, "a", encoding="utf-8") as f:
+        f.write(line)
+
+    # Also print to terminal, so you see it when running the app
+    print("FEEDBACK:", line, end="")
+
+    return jsonify({"ok": True})
 
 if __name__ == '__main__':
     os.makedirs('static', exist_ok=True)
