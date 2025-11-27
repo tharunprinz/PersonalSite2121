@@ -1,8 +1,7 @@
 # Professional Portfolio Website — Neon Aura, Section Cards, Lightbox + Feedback Storage
 
-from flask import Flask, render_template_string, send_from_directory, abort, url_for, request, jsonify
+from flask import Flask, render_template_string, send_from_directory, abort, url_for, request
 import os
-from datetime import datetime
 
 app = Flask(__name__)
 
@@ -13,7 +12,8 @@ PERSON = {
     "email": "tharunr2121@gmail.com",
     "youtube": "https://www.youtube.com/@tharunr21",
     "instagram": "https://www.instagram.com/thxrun21/",
-    "github": "https://github.com/Tharun021",  # 👈 your GitHub here
+    # TODO: put your actual GitHub repo or profile URL here
+    "github": "https://github.com/YOUR_USERNAME/YOUR_REPO",
     "profile_image": "profile.jpeg",
     "resume_filename": "resume.pdf",
     "model_9_16": [
@@ -26,22 +26,22 @@ PERSON = {
     "dance_video_url": "https://youtu.be/vC0yDgson3Y",
     "projects": [
         {"title": "Ecommerce Site", "desc": "Responsive ecommerce UI using HTML, CSS, JS"},
-        {"title": "Face Recognition", "desc": "Detects registered persons using Python and OpenCV"},
+        {"title": "face Recognition", "desc": "Detects Registered Person using Python and OpenCV"},
         {"title": "Malware Scanner Using Yara", "desc": "Detects malware-infected files via YARA rules"}
     ],
     "certifications": [
         {"title": "CYBER SECURITY AND NETWORKING 2k24", "issuer": "SYSTECH"},
-        {"title": "Diploma in Computer Programming — C, C++, Python (2023)", "issuer": "IFC-INFOTECH Computer Education"}
+        {"title": "Diploma in Computer Programming with a focus on C, C++, and Python (2023)", "issuer": "IFC-INFOTECH Computer Education"}
     ],
     "achievements": [
-        "Winner — Application Development (National Science Day) at KCE College (1st Prize) 2k23",
-        "RUNWAY MODEL — Aura Fashion Castle 2k25",
-        "Salesforce — Trailhead Agentblazer Champion and Innovator badge"
+        "Winner — Application Development (National Science Day) at KCE College (1st PRICE)2k23",
+        "RUNWAY MODEL - Aura Fashion Castle 2k25",
+        "Salesforce - Trailhead Agentblazer Champion and Innovator badge"
     ],
     "participations": [
-        "National-level Generative AI Hackathon at Manakula Vinayaka College 2k23 (Pondicherry)",
-        "Googlethon — Generative AI Hackathon at SNS College 2k23",
-        "Materials Data Science Workshop at IIT Madras 2024",
+        "National-level Generative Ai Hackathon at Manakula Vinayaka College 2k23 (PONDICHERRY)",
+        "Googlethon - Generative Ai Hackathon at SNS College 2k23",
+        "Material Data Science Workshop at IIT Madras 2024",
         "Dance performances at multiple college fests",
     ]
 }
@@ -228,7 +228,7 @@ INDEX_HTML = r"""
       background:rgba(15,23,42,0.8);
     }
 
-    /* LIST STYLES */
+    /* PROJECT, CERT, LIST STYLES */
     .pill-list{
       display:flex;
       flex-direction:column;
@@ -262,7 +262,7 @@ INDEX_HTML = r"""
       margin-bottom:5px;
     }
 
-    /* DANCE VIDEO */
+    /* DANCE VIDEO CARD */
     .dance-card{
       display:flex;
       gap:16px;
@@ -316,7 +316,7 @@ INDEX_HTML = r"""
       color:var(--muted);
     }
 
-    /* MODELING */
+    /* MODELING GALLERIES */
     .portfolio-wrapper{
       display:flex;
       flex-direction:column;
@@ -350,6 +350,7 @@ INDEX_HTML = r"""
       transform:scale(1.05);
       filter:brightness(1.08);
     }
+
     .wide-gallery{
       display:grid;
       grid-template-columns:1fr 1fr;
@@ -369,7 +370,7 @@ INDEX_HTML = r"""
       filter:brightness(1.06);
     }
 
-    /* FEEDBACK */
+    /* FEEDBACK BOX */
     .feedback-box textarea{
       width:100%;
       height:90px;
@@ -404,6 +405,27 @@ INDEX_HTML = r"""
     .feedback-box button:hover{
       transform:translateY(-3px);
       box-shadow:0 18px 40px rgba(15,23,42,1);
+    }
+    .feedback-list{
+      margin-top:14px;
+      border-top:1px solid rgba(148,163,184,0.35);
+      padding-top:10px;
+      font-size:13px;
+      color:#d1e5ff;
+    }
+    .feedback-list h4{
+      margin:0 0 6px;
+      font-size:13px;
+      text-transform:uppercase;
+      letter-spacing:.12em;
+      color:var(--muted);
+    }
+    .feedback-list ul{
+      margin:0;
+      padding-left:16px;
+    }
+    .feedback-list li{
+      margin-bottom:4px;
     }
 
     /* LIGHTBOX */
@@ -508,9 +530,6 @@ INDEX_HTML = r"""
         <a class="btn" href="{{ url_for('download_resume') }}">
           <i class="fa-solid fa-file-arrow-down"></i> Resume
         </a>
-        <a class="btn" href="{{ person.github }}" target="_blank">
-          <i class="fa-brands fa-github"></i> GitHub
-        </a>
         <a class="btn" href="mailto:{{ person.email }}">
           <i class="fa-solid fa-envelope"></i> Email
         </a>
@@ -520,6 +539,11 @@ INDEX_HTML = r"""
         <a class="btn" href="{{ person.instagram }}" target="_blank">
           <i class="fa-brands fa-instagram"></i> Instagram
         </a>
+        {% if person.github %}
+        <a class="btn" href="{{ person.github }}" target="_blank">
+          <i class="fa-brands fa-github"></i> GitHub
+        </a>
+        {% endif %}
       </div>
     </div>
 
@@ -581,7 +605,7 @@ INDEX_HTML = r"""
       </ul>
     </section>
 
-    <!-- FEATURED DANCE VIDEO (title on right, heading unchanged) -->
+    <!-- FEATURED DANCE VIDEO (title stays SAME, Dhruva title on the right) -->
     <section class="section-card" data-aos="fade-up">
       <div class="section-header">
         <h3 class="section-title">Featured Dance Video</h3>
@@ -643,7 +667,18 @@ INDEX_HTML = r"""
       <button id="feedback-submit">
         <i class="fa-solid fa-paper-plane"></i> Submit
       </button>
-      <div id="feedback-status" style="margin-top:8px;font-size:13px;color:var(--muted);"></div>
+
+      {% if feedback_items %}
+      <div class="feedback-list">
+        <h4>Recent feedback</h4>
+        <ul>
+          {# show last 5 feedback lines #}
+          {% for fb in feedback_items[-5:] %}
+          <li>{{ fb }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
     </section>
 
   </div>
@@ -763,33 +798,33 @@ INDEX_HTML = r"""
       }
     });
 
-    // FEEDBACK SUBMIT (sends to /feedback)
-    const feedbackBtn = document.getElementById('feedback-submit');
-    const feedbackText = document.getElementById('feedback-text');
-    const feedbackStatus = document.getElementById('feedback-status');
+    // FEEDBACK JS: send to backend and refresh list
+    const feedbackTextarea = document.getElementById('feedback-text');
+    const feedbackButton = document.getElementById('feedback-submit');
 
-    feedbackBtn.addEventListener('click', async () => {
-      const message = feedbackText.value.trim();
+    feedbackButton.addEventListener('click', async () => {
+      const message = (feedbackTextarea.value || '').trim();
       if (!message) {
-        feedbackStatus.textContent = "Please type something before submitting.";
+        alert('Please type some feedback first 🙂');
         return;
       }
-      feedbackStatus.textContent = "Sending...";
       try {
-        const res = await fetch("/feedback", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const res = await fetch('/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message })
         });
-        const data = await res.json();
-        if (data.ok) {
-          feedbackStatus.textContent = "Thank you for your feedback!";
-          feedbackText.value = "";
-        } else {
-          feedbackStatus.textContent = "Error saving feedback. Please try again.";
+        if (!res.ok) {
+          alert('Something went wrong while sending feedback.');
+          return;
         }
+        feedbackTextarea.value = '';
+        alert('Thank you for your feedback!');
+        // reload to show in "Recent feedback" list
+        location.reload();
       } catch (err) {
-        feedbackStatus.textContent = "Network error. Please try again.";
+        console.error(err);
+        alert('Network error while sending feedback.');
       }
     });
   </script>
@@ -797,9 +832,20 @@ INDEX_HTML = r"""
 </html>
 """
 
+# ---------------- ROUTES ----------------
+
 @app.route('/')
 def index():
-    return render_template_string(INDEX_HTML, person=PERSON)
+    # load feedback from file so you can show it on the page
+    feedback_items = []
+    feedback_path = os.path.join('data', 'feedback.txt')
+    if os.path.exists(feedback_path):
+        with open(feedback_path, encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    feedback_items.append(line)
+    return render_template_string(INDEX_HTML, person=PERSON, feedback_items=feedback_items)
 
 @app.route('/resume')
 def download_resume():
@@ -809,24 +855,20 @@ def download_resume():
     abort(404)
 
 @app.route('/feedback', methods=['POST'])
-def feedback():
-    """Store feedback into a local file and return JSON."""
+def save_feedback():
+    """Save feedback to a simple text file."""
     data = request.get_json(silent=True) or {}
     message = (data.get("message") or "").strip()
     if not message:
-        return jsonify({"ok": False, "error": "empty"}), 400
+        return {"ok": False, "error": "Empty feedback"}, 400
 
-    os.makedirs("data", exist_ok=True)
-    feedback_file = os.path.join("data", "feedback.txt")
-    line = f"[{datetime.now().isoformat(timespec='seconds')}] {message}\n"
+    os.makedirs('data', exist_ok=True)
+    feedback_path = os.path.join('data', 'feedback.txt')
 
-    with open(feedback_file, "a", encoding="utf-8") as f:
-        f.write(line)
+    with open(feedback_path, 'a', encoding='utf-8') as f:
+        f.write(message.replace('\n', ' ').strip() + "\n")
 
-    # Also print to terminal, so you see it when running the app
-    print("FEEDBACK:", line, end="")
-
-    return jsonify({"ok": True})
+    return {"ok": True}
 
 if __name__ == '__main__':
     os.makedirs('static', exist_ok=True)
