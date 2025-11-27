@@ -12,17 +12,17 @@ app = Flask(__name__)
 OWNER_EMAIL = os.environ.get("PORTFOLIO_OWNER_EMAIL", "tharunr2121@gmail.com")
 
 # SMTP settings (set these as environment variables on Vercel / local .env)
-SMTP_HOST = os.environ.get("SMTP_HOST", "")
+SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
-SMTP_USER = os.environ.get("SMTP_USER", "")
-SMTP_PASS = os.environ.get("SMTP_PASS", "")
+SMTP_USER = os.environ.get("SMTP_USER", "tharunr2121@gmail.com")
+SMTP_PASS = os.environ.get("SMTP_PASS", "tharun!it")
 
 # ---------- PERSON DATA ----------
 PERSON = {
     "name": "THARUN R",
     "title": "Software Engineer • CYBER SECURITY Enthusiast • Model & Dancer",
     "linkedin": "https://www.linkedin.com/in/tharun021/",
-    "github": "https://github.com/tharun021",  # TODO: change to your real GitHub URL
+    "github": "https://github.com/tharunprinz", 
     "email": "tharunr2121@gmail.com",
     "youtube": "https://www.youtube.com/@tharunr21",
     "instagram": "https://www.instagram.com/thxrun21/",
