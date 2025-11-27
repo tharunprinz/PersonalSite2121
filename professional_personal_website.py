@@ -1,8 +1,8 @@
 # Professional Portfolio Website — Neon Aura, Section Cards, Lightbox + Feedback API
 
 from flask import Flask, render_template_string, send_from_directory, abort, url_for, request, jsonify
-import os
 from datetime import datetime
+import os
 
 app = Flask(__name__)
 
@@ -13,8 +13,7 @@ PERSON = {
     "email": "tharunr2121@gmail.com",
     "youtube": "https://www.youtube.com/@tharunr21",
     "instagram": "https://www.instagram.com/thxrun21/",
-    # 👇 ADD YOUR REAL GITHUB REPO URL HERE
-    "github": "https://github.com/tharun021/your-portfolio-repo",
+    "github": "https://github.com/tharun021",  # <= update to your repo if you want
     "profile_image": "profile.jpeg",
     "resume_filename": "resume.pdf",
     "model_9_16": [
@@ -32,20 +31,23 @@ PERSON = {
     ],
     "certifications": [
         {"title": "CYBER SECURITY AND NETWORKING 2k24", "issuer": "SYSTECH"},
-        {"title": "Diploma in C, C++, and Python (2023)", "issuer": "IFC-INFOTECH Computer Education"}
+        {"title": "Diploma in Computer Programming (C, C++, Python) — 2023", "issuer": "IFC-INFOTECH Computer Education"}
     ],
     "achievements": [
-        "Winner — Application Development (National Science Day) at KCE College (1st Prize) 2k23",
-        "RUNWAY MODEL - Aura Fashion Castle 2k25",
-        "Salesforce - Trailhead Agentblazer Champion and Innovator badge"
+        "Winner — Application Development (National Science Day) at KCE (1st Prize) 2k23",
+        "RUNWAY MODEL — Aura Fashion Castle 2k25",
+        "Salesforce Trailhead — Agentblazer Champion & Innovator badge"
     ],
     "participations": [
-        "National-level Generative AI Hackathon at Manakula Vinayaka College 2k23 (Puducherry)",
-        "Googlethon - Generative AI Hackathon at SNS College 2k23",
-        "Material Data Science Workshop at IIT Madras 2024",
+        "National-level Generative AI Hackathon — Manakula Vinayaka College 2k23 (Pondicherry)",
+        "Googlethon — Generative AI Hackathon at SNS College 2k23",
+        "Materials Data Science Workshop — IIT Madras 2024",
         "Dance performances at multiple college fests"
     ]
 }
+
+FEEDBACK_DIR = "data"
+FEEDBACK_FILE = "feedback.txt"
 
 INDEX_HTML = r"""
 <!doctype html>
@@ -408,11 +410,10 @@ INDEX_HTML = r"""
       box-shadow:0 18px 40px rgba(15,23,42,1);
     }
     .feedback-status{
-      margin-top:8px;
+      margin-top:6px;
       font-size:13px;
+      min-height:16px;
     }
-    .feedback-status.ok{color:#6ee7b7;}
-    .feedback-status.err{color:#f97373;}
 
     /* LIGHTBOX */
     .lightbox{
@@ -525,7 +526,6 @@ INDEX_HTML = r"""
         <a class="btn" href="{{ person.instagram }}" target="_blank">
           <i class="fa-brands fa-instagram"></i> Instagram
         </a>
-        <!-- 👇 NEW GITHUB BUTTON -->
         <a class="btn" href="{{ person.github }}" target="_blank">
           <i class="fa-brands fa-github"></i> GitHub
         </a>
@@ -590,7 +590,7 @@ INDEX_HTML = r"""
       </ul>
     </section>
 
-    <!-- FEATURED DANCE VIDEO (title unchanged on left, your Dhruva title on right meta) -->
+    <!-- FEATURED DANCE VIDEO: Title unchanged, your event title on the right -->
     <section class="section-card" data-aos="fade-up">
       <div class="section-header">
         <h3 class="section-title">Featured Dance Video</h3>
@@ -648,15 +648,12 @@ INDEX_HTML = r"""
         <h3 class="section-title">Share Your Feedback</h3>
         <span class="section-tag">Your Thoughts</span>
       </div>
-
-      <form id="feedback-form">
-        <textarea id="feedback-input"
-          placeholder="How did you like this portfolio? Any suggestions, opportunities, or feedback are welcome."></textarea>
-        <button type="submit">
-          <i class="fa-solid fa-paper-plane"></i> Submit
-        </button>
-        <div id="feedback-status" class="feedback-status"></div>
-      </form>
+      <textarea id="feedback-text"
+        placeholder="How did you like this portfolio? Any suggestions, opportunities, or feedback are welcome."></textarea>
+      <button type="button" onclick="sendFeedback()">
+        <i class="fa-solid fa-paper-plane"></i> Submit
+      </button>
+      <div id="feedback-status" class="feedback-status"></div>
     </section>
 
   </div>
@@ -776,52 +773,53 @@ INDEX_HTML = r"""
       }
     });
 
-    // FEEDBACK FORM JS (calls /api/feedback)
-    const feedbackForm = document.getElementById('feedback-form');
-    const feedbackInput = document.getElementById('feedback-input');
-    const feedbackStatus = document.getElementById('feedback-status');
+    // FEEDBACK JS (calls Flask API)
+    async function sendFeedback() {
+      const textarea = document.getElementById('feedback-text');
+      const statusEl = document.getElementById('feedback-status');
+      const message = textarea.value.trim();
 
-    feedbackForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const msg = feedbackInput.value.trim();
-      if (!msg) {
-        feedbackStatus.textContent = 'Please type something before submitting.';
-        feedbackStatus.className = 'feedback-status err';
+      if (!message) {
+        statusEl.textContent = 'Please write something before submitting.';
+        statusEl.style.color = '#fca5a5';
         return;
       }
-      feedbackStatus.textContent = 'Sending...';
-      feedbackStatus.className = 'feedback-status';
+
+      statusEl.textContent = 'Sending...';
+      statusEl.style.color = '#9ca3af';
 
       try {
-        const res = await fetch('/api/feedback', {
+        const res = await fetch("{{ url_for('submit_feedback') }}", {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({message: msg})
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message })
         });
 
         if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          const errMsg = data.error || 'Something went wrong while sending feedback.';
-          feedbackStatus.textContent = errMsg;
-          feedbackStatus.className = 'feedback-status err';
+          let errText = 'Something went wrong while sending feedback.';
+          try {
+            const data = await res.json();
+            if (data.error) errText = data.error;
+          } catch (e) {}
+          statusEl.textContent = errText;
+          statusEl.style.color = '#fca5a5';
           return;
         }
 
         const data = await res.json();
         if (data.ok) {
-          feedbackStatus.textContent = 'Thank you! Your feedback was saved.';
-          feedbackStatus.className = 'feedback-status ok';
-          feedbackInput.value = '';
+          statusEl.textContent = 'Thank you for your feedback!';
+          statusEl.style.color = '#6ee7b7';
+          textarea.value = '';
         } else {
-          feedbackStatus.textContent = data.error || 'Something went wrong while sending feedback.';
-          feedbackStatus.className = 'feedback-status err';
+          statusEl.textContent = data.error || 'Something went wrong while sending feedback.';
+          statusEl.style.color = '#fca5a5';
         }
-      } catch (err) {
-        console.error(err);
-        feedbackStatus.textContent = 'Network error while sending feedback.';
-        feedbackStatus.className = 'feedback-status err';
+      } catch (e) {
+        statusEl.textContent = 'Network error while sending feedback.';
+        statusEl.style.color = '#fca5a5';
       }
-    });
+    }
   </script>
 </body>
 </html>
@@ -838,28 +836,33 @@ def download_resume():
         return send_from_directory(app.static_folder or 'static', PERSON["resume_filename"], as_attachment=True)
     abort(404)
 
-# ---------- FEEDBACK API: saves to data/feedback.txt ----------
-@app.route('/api/feedback', methods=['POST'])
-def save_feedback():
+@app.route('/feedback', methods=['POST'])
+def submit_feedback():
+    """Save feedback to data/feedback.txt"""
     data = request.get_json(silent=True) or {}
-    message = (data.get('message') or '').strip()
+    message = (data.get("message") or "").strip()
 
     if not message:
         return jsonify({"ok": False, "error": "Feedback cannot be empty."}), 400
 
-    os.makedirs('data', exist_ok=True)
-    feedback_path = os.path.join('data', 'feedback.txt')
-
-    line = f"{datetime.utcnow().isoformat()} | {request.remote_addr or 'unknown'} | {message}\n"
     try:
-        with open(feedback_path, 'a', encoding='utf-8') as f:
-            f.write(line)
+        os.makedirs(FEEDBACK_DIR, exist_ok=True)
+        filepath = os.path.join(FEEDBACK_DIR, FEEDBACK_FILE)
+
+        with open(filepath, "a", encoding="utf-8") as f:
+            f.write("----------\n")
+            f.write(f"Time: {datetime.now().isoformat()}\n")
+            f.write(f"Message:\n{message}\n\n")
+
+        return jsonify({"ok": True})
     except Exception as e:
-        # This is where Vercel / read-only FS will usually fail
+        # For debugging you can print(e) on local dev
         return jsonify({"ok": False, "error": "Server could not save feedback."}), 500
 
-    return jsonify({"ok": True})
 
 if __name__ == '__main__':
     os.makedirs('static', exist_ok=True)
+    os.makedirs(FEEDBACK_DIR, exist_ok=True)
+    # Ensure feedback file exists so you can commit it to git if you want
+    open(os.path.join(FEEDBACK_DIR, FEEDBACK_FILE), "a", encoding="utf-8").close()
     app.run(debug=True)
