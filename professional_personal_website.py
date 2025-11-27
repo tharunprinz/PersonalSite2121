@@ -1,19 +1,31 @@
-# Professional Portfolio Website — Neon Aura, Section Cards, Lightbox + Feedback API
+# Professional Portfolio Website — Neon Aura, Section Cards, Lightbox, Email Feedback
 
 from flask import Flask, render_template_string, send_from_directory, abort, url_for, request, jsonify
-from datetime import datetime
 import os
+import smtplib
+from email.message import EmailMessage
 
 app = Flask(__name__)
 
+# ---------- CONFIG (EDIT THIS) ----------
+# Where feedback emails should go
+OWNER_EMAIL = os.environ.get("PORTFOLIO_OWNER_EMAIL", "tharunr2121@gmail.com")
+
+# SMTP settings (set these as environment variables on Vercel / local .env)
+SMTP_HOST = os.environ.get("SMTP_HOST", "")
+SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+SMTP_USER = os.environ.get("SMTP_USER", "")
+SMTP_PASS = os.environ.get("SMTP_PASS", "")
+
+# ---------- PERSON DATA ----------
 PERSON = {
     "name": "THARUN R",
     "title": "Software Engineer • CYBER SECURITY Enthusiast • Model & Dancer",
     "linkedin": "https://www.linkedin.com/in/tharun021/",
+    "github": "https://github.com/tharun021",  # TODO: change to your real GitHub URL
     "email": "tharunr2121@gmail.com",
     "youtube": "https://www.youtube.com/@tharunr21",
     "instagram": "https://www.instagram.com/thxrun21/",
-    "github": "https://github.com/tharun021",  # <= update to your repo if you want
     "profile_image": "profile.jpeg",
     "resume_filename": "resume.pdf",
     "model_9_16": [
@@ -26,29 +38,30 @@ PERSON = {
     "dance_video_url": "https://youtu.be/vC0yDgson3Y",
     "projects": [
         {"title": "Ecommerce Site", "desc": "Responsive ecommerce UI using HTML, CSS, JS"},
-        {"title": "Face Recognition", "desc": "Detects registered person using Python and OpenCV"},
+        {"title": "Face Recognition", "desc": "Detects registered persons using Python and OpenCV"},
         {"title": "Malware Scanner Using Yara", "desc": "Detects malware-infected files via YARA rules"}
     ],
     "certifications": [
         {"title": "CYBER SECURITY AND NETWORKING 2k24", "issuer": "SYSTECH"},
-        {"title": "Diploma in Computer Programming (C, C++, Python) — 2023", "issuer": "IFC-INFOTECH Computer Education"}
+        {"title": "Diploma in Computer Programming (C, C++, Python) 2023", "issuer": "IFC-INFOTECH Computer Education"}
     ],
     "achievements": [
-        "Winner — Application Development (National Science Day) at KCE (1st Prize) 2k23",
+        "Winner — Application Development (National Science Day) at KCE College (1st Prize, 2k23)",
         "RUNWAY MODEL — Aura Fashion Castle 2k25",
-        "Salesforce Trailhead — Agentblazer Champion & Innovator badge"
+        "Salesforce Trailhead Agentblazer Champion and Innovator badge"
     ],
     "participations": [
-        "National-level Generative AI Hackathon — Manakula Vinayaka College 2k23 (Pondicherry)",
-        "Googlethon — Generative AI Hackathon at SNS College 2k23",
-        "Materials Data Science Workshop — IIT Madras 2024",
+        "National-level Generative AI Hackathon at Manakula Vinayaka College 2k23 (Pondicherry)",
+        "Googlethon - Generative AI Hackathon at SNS College 2k23",
+        "Materials Data Science Workshop at IIT Madras 2024",
         "Dance performances at multiple college fests"
     ]
 }
 
-FEEDBACK_DIR = "data"
-FEEDBACK_FILE = "feedback.txt"
+# In-memory public feedback list (not persisted across restarts)
+PUBLIC_FEEDBACK = []
 
+# ------------- HTML TEMPLATE -------------
 INDEX_HTML = r"""
 <!doctype html>
 <html lang="en">
@@ -231,7 +244,7 @@ INDEX_HTML = r"""
       background:rgba(15,23,42,0.8);
     }
 
-    /* PROJECT, CERT, LIST STYLES */
+    /* LIST STYLES */
     .pill-list{
       display:flex;
       flex-direction:column;
@@ -265,7 +278,7 @@ INDEX_HTML = r"""
       margin-bottom:5px;
     }
 
-    /* DANCE VIDEO CARD */
+    /* DANCE VIDEO */
     .dance-card{
       display:flex;
       gap:16px;
@@ -319,7 +332,7 @@ INDEX_HTML = r"""
       color:var(--muted);
     }
 
-    /* MODELING GALLERIES */
+    /* MODELING */
     .portfolio-wrapper{
       display:flex;
       flex-direction:column;
@@ -353,7 +366,6 @@ INDEX_HTML = r"""
       transform:scale(1.05);
       filter:brightness(1.08);
     }
-
     .wide-gallery{
       display:grid;
       grid-template-columns:1fr 1fr;
@@ -373,7 +385,7 @@ INDEX_HTML = r"""
       filter:brightness(1.06);
     }
 
-    /* FEEDBACK BOX */
+    /* FEEDBACK */
     .feedback-box textarea{
       width:100%;
       height:90px;
@@ -389,8 +401,32 @@ INDEX_HTML = r"""
     .feedback-box textarea::placeholder{
       color:rgba(148,163,184,0.8);
     }
+    .feedback-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin:10px 0;
+      font-size:13px;
+      color:var(--muted);
+    }
+    .feedback-row input{
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,0.45);
+      padding:6px 10px;
+      background:rgba(15,23,42,0.95);
+      color:#eaf4ff;
+      outline:none;
+    }
+    .visibility-choice{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      font-size:13px;
+    }
+    .visibility-choice label{display:flex;gap:4px;align-items:center;}
+
     .feedback-box button{
-      margin-top:10px;
+      margin-top:6px;
       padding:9px 16px;
       border-radius:999px;
       background:linear-gradient(135deg,rgba(129,230,217,0.25),rgba(56,189,248,0.3));
@@ -410,9 +446,15 @@ INDEX_HTML = r"""
       box-shadow:0 18px 40px rgba(15,23,42,1);
     }
     .feedback-status{
-      margin-top:6px;
+      margin-top:8px;
       font-size:13px;
-      min-height:16px;
+      color:var(--muted);
+    }
+    .public-feedback-list{
+      margin:12px 0 0;
+      padding-left:16px;
+      font-size:13px;
+      color:#d1e5ff;
     }
 
     /* LIGHTBOX */
@@ -476,7 +518,6 @@ INDEX_HTML = r"""
       font-size:13px;
     }
     .action-btn i{font-size:14px;}
-
     .lightbox-note{
       margin-top:10px;
       color:var(--muted);
@@ -517,6 +558,9 @@ INDEX_HTML = r"""
         <a class="btn" href="{{ url_for('download_resume') }}">
           <i class="fa-solid fa-file-arrow-down"></i> Resume
         </a>
+        <a class="btn" href="{{ person.github }}" target="_blank">
+          <i class="fa-brands fa-github"></i> GitHub
+        </a>
         <a class="btn" href="mailto:{{ person.email }}">
           <i class="fa-solid fa-envelope"></i> Email
         </a>
@@ -525,9 +569,6 @@ INDEX_HTML = r"""
         </a>
         <a class="btn" href="{{ person.instagram }}" target="_blank">
           <i class="fa-brands fa-instagram"></i> Instagram
-        </a>
-        <a class="btn" href="{{ person.github }}" target="_blank">
-          <i class="fa-brands fa-github"></i> GitHub
         </a>
       </div>
     </div>
@@ -590,7 +631,7 @@ INDEX_HTML = r"""
       </ul>
     </section>
 
-    <!-- FEATURED DANCE VIDEO: Title unchanged, your event title on the right -->
+    <!-- FEATURED DANCE VIDEO (title stays "Featured Dance Video") -->
     <section class="section-card" data-aos="fade-up">
       <div class="section-header">
         <h3 class="section-title">Featured Dance Video</h3>
@@ -648,12 +689,37 @@ INDEX_HTML = r"""
         <h3 class="section-title">Share Your Feedback</h3>
         <span class="section-tag">Your Thoughts</span>
       </div>
+
       <textarea id="feedback-text"
         placeholder="How did you like this portfolio? Any suggestions, opportunities, or feedback are welcome."></textarea>
-      <button type="button" onclick="sendFeedback()">
-        <i class="fa-solid fa-paper-plane"></i> Submit
+
+      <div class="feedback-row">
+        <input id="fb-name" type="text" placeholder="Your name (optional)">
+        <input id="fb-email" type="email" placeholder="Your email (optional)">
+        <div class="visibility-choice">
+          <span>Visibility:</span>
+          <label><input type="radio" name="visibility" value="public" checked> Public</label>
+          <label><input type="radio" name="visibility" value="private"> Private</label>
+        </div>
+      </div>
+
+      <button id="feedback-submit">
+        <i class="fa-solid fa-paper-plane"></i> Submit Feedback
       </button>
       <div id="feedback-status" class="feedback-status"></div>
+
+      {% if public_feedback %}
+      <div style="margin-top:12px;">
+        <strong>Public Feedback:</strong>
+        <ul class="public-feedback-list" id="public-feedback-list">
+          {% for fb in public_feedback %}
+          <li><strong>{{ fb.name }}</strong>: {{ fb.text }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% else %}
+      <ul class="public-feedback-list" id="public-feedback-list" style="display:none;"></ul>
+      {% endif %}
     </section>
 
   </div>
@@ -748,10 +814,10 @@ INDEX_HTML = r"""
       const likes = JSON.parse(localStorage.getItem('img_likes') || '{}');
       likes[file] = (likes[file] || 0) + 1;
       localStorage.setItem('img_likes', JSON.stringify(likes));
-      lbLikeCount.textContent = likes[file];
+      const count = likes[file];
       lbLike.innerHTML =
         '<i class="fa-solid fa-heart" style="color:#ff6b81"></i> ' +
-        '<span id="lb-like-count">'+likes[file]+'</span>';
+        '<span id="lb-like-count">'+count+'</span>';
     });
 
     lbShare.addEventListener('click', async () => {
@@ -773,96 +839,136 @@ INDEX_HTML = r"""
       }
     });
 
-    // FEEDBACK JS (calls Flask API)
-    async function sendFeedback() {
-      const textarea = document.getElementById('feedback-text');
-      const statusEl = document.getElementById('feedback-status');
-      const message = textarea.value.trim();
+    // FEEDBACK JS (send to backend, email + public/private)
+    const fbBtn = document.getElementById('feedback-submit');
+    const fbText = document.getElementById('feedback-text');
+    const fbName = document.getElementById('fb-name');
+    const fbEmail = document.getElementById('fb-email');
+    const fbStatus = document.getElementById('feedback-status');
+    const fbPublicList = document.getElementById('public-feedback-list');
 
-      if (!message) {
-        statusEl.textContent = 'Please write something before submitting.';
-        statusEl.style.color = '#fca5a5';
+    fbBtn.addEventListener('click', async () => {
+      const text = fbText.value.trim();
+      const name = fbName.value.trim();
+      const email = fbEmail.value.trim();
+      const visibility = document.querySelector('input[name="visibility"]:checked').value;
+
+      if (!text) {
+        fbStatus.textContent = "Please enter some feedback before submitting.";
         return;
       }
 
-      statusEl.textContent = 'Sending...';
-      statusEl.style.color = '#9ca3af';
-
+      fbStatus.textContent = "Sending feedback...";
       try {
         const res = await fetch("{{ url_for('submit_feedback') }}", {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message })
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ text, name, email, visibility })
         });
-
-        if (!res.ok) {
-          let errText = 'Something went wrong while sending feedback.';
-          try {
-            const data = await res.json();
-            if (data.error) errText = data.error;
-          } catch (e) {}
-          statusEl.textContent = errText;
-          statusEl.style.color = '#fca5a5';
-          return;
-        }
-
         const data = await res.json();
-        if (data.ok) {
-          statusEl.textContent = 'Thank you for your feedback!';
-          statusEl.style.color = '#6ee7b7';
-          textarea.value = '';
+        if (res.ok && data.ok) {
+          fbStatus.textContent = data.message || "Thank you for your feedback!";
+          fbText.value = "";
+          // if public, update list
+          if (data.feedback && data.feedback.length) {
+            fbPublicList.style.display = "block";
+            fbPublicList.innerHTML = "";
+            data.feedback.forEach(item => {
+              const li = document.createElement("li");
+              li.innerHTML = "<strong>" + item.name + "</strong>: " + item.text;
+              fbPublicList.appendChild(li);
+            });
+          }
         } else {
-          statusEl.textContent = data.error || 'Something went wrong while sending feedback.';
-          statusEl.style.color = '#fca5a5';
+          fbStatus.textContent = data.message || "Server could not send feedback email.";
         }
       } catch (e) {
-        statusEl.textContent = 'Network error while sending feedback.';
-        statusEl.style.color = '#fca5a5';
+        fbStatus.textContent = "Network error while sending feedback.";
       }
-    }
+    });
   </script>
 </body>
 </html>
 """
 
-@app.route('/')
-def index():
-    return render_template_string(INDEX_HTML, person=PERSON)
+# ------------- EMAIL SENDER -------------
+def send_feedback_email(text: str, visibility: str, name: str, email: str):
+    """
+    Sends feedback to OWNER_EMAIL using SMTP.
+    If SMTP_* env vars are not set, just prints to console (local dev).
+    """
+    msg = EmailMessage()
+    msg["Subject"] = f"Portfolio feedback ({visibility})"
+    msg["From"] = OWNER_EMAIL
+    msg["To"] = OWNER_EMAIL
 
-@app.route('/resume')
+    body_lines = []
+    if name:
+        body_lines.append(f"From: {name}")
+    if email:
+        body_lines.append(f"Reply-to email: {email}")
+        msg["Reply-To"] = email
+    body_lines.append(f"Visibility: {visibility}")
+    body_lines.append("")
+    body_lines.append("Feedback:")
+    body_lines.append(text)
+
+    msg.set_content("\n".join(body_lines))
+
+    if not (SMTP_HOST and SMTP_USER and SMTP_PASS):
+        # For local dev / if not configured, don't crash, just print.
+        print("==== FEEDBACK EMAIL (SMTP not configured, not actually sent) ====")
+        print(msg)
+        return
+
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as smtp:
+        smtp.starttls()
+        smtp.login(SMTP_USER, SMTP_PASS)
+        smtp.send_message(msg)
+
+
+# ------------- ROUTES -------------
+@app.route("/")
+def index():
+    return render_template_string(INDEX_HTML, person=PERSON, public_feedback=PUBLIC_FEEDBACK)
+
+
+@app.route("/resume")
 def download_resume():
-    resume_path = os.path.join(app.static_folder or 'static', PERSON["resume_filename"])
+    resume_path = os.path.join(app.static_folder or "static", PERSON["resume_filename"])
     if os.path.exists(resume_path):
-        return send_from_directory(app.static_folder or 'static', PERSON["resume_filename"], as_attachment=True)
+        return send_from_directory(app.static_folder or "static", PERSON["resume_filename"], as_attachment=True)
     abort(404)
 
-@app.route('/feedback', methods=['POST'])
-def submit_feedback():
-    """Save feedback to data/feedback.txt"""
-    data = request.get_json(silent=True) or {}
-    message = (data.get("message") or "").strip()
 
-    if not message:
-        return jsonify({"ok": False, "error": "Feedback cannot be empty."}), 400
+@app.route("/feedback", methods=["POST"])
+def submit_feedback():
+    data = request.get_json(silent=True) or {}
+    text = (data.get("text") or "").strip()
+    name = (data.get("name") or "").strip() or "Anonymous"
+    email = (data.get("email") or "").strip()
+    visibility = (data.get("visibility") or "private").lower()
+
+    if not text:
+        return jsonify(ok=False, message="Feedback text is required."), 400
 
     try:
-        os.makedirs(FEEDBACK_DIR, exist_ok=True)
-        filepath = os.path.join(FEEDBACK_DIR, FEEDBACK_FILE)
-
-        with open(filepath, "a", encoding="utf-8") as f:
-            f.write("----------\n")
-            f.write(f"Time: {datetime.now().isoformat()}\n")
-            f.write(f"Message:\n{message}\n\n")
-
-        return jsonify({"ok": True})
+        send_feedback_email(text=text, visibility=visibility, name=name, email=email)
     except Exception as e:
-        # For debugging you can print(e) on local dev
-        return jsonify({"ok": False, "error": "Server could not save feedback."}), 500
+        # Log error and return message
+        print("Error sending feedback email:", e)
+        return jsonify(ok=False, message="Server could not send feedback email."), 500
+
+    if visibility == "public":
+        PUBLIC_FEEDBACK.append({"name": name, "text": text})
+
+    return jsonify(
+        ok=True,
+        message="Thank you! Your feedback has been sent to my email.",
+        feedback=PUBLIC_FEEDBACK
+    )
 
 
-if __name__ == '__main__':
-    os.makedirs('static', exist_ok=True)
-    os.makedirs(FEEDBACK_DIR, exist_ok=True)
-    # Ensure feedback file exists so you can commit it to git if you want
-    open(os.path.join(FEEDBACK_DIR, FEEDBACK_FILE), "a", encoding="utf-8").close()
+if __name__ == "__main__":
+    os.makedirs("static", exist_ok=True)
     app.run(debug=True)
