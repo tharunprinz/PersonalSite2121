@@ -1,7 +1,8 @@
-# Professional Portfolio Website — Neon Aura, Section Cards, Lightbox + Feedback Storage
+# Professional Portfolio Website — Neon Aura, Section Cards, Lightbox + Feedback API
 
-from flask import Flask, render_template_string, send_from_directory, abort, url_for, request
+from flask import Flask, render_template_string, send_from_directory, abort, url_for, request, jsonify
 import os
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -12,8 +13,8 @@ PERSON = {
     "email": "tharunr2121@gmail.com",
     "youtube": "https://www.youtube.com/@tharunr21",
     "instagram": "https://www.instagram.com/thxrun21/",
-    # TODO: put your actual GitHub repo or profile URL here
-    "github": "https://github.com/YOUR_USERNAME/YOUR_REPO",
+    # 👇 ADD YOUR REAL GITHUB REPO URL HERE
+    "github": "https://github.com/tharun021/your-portfolio-repo",
     "profile_image": "profile.jpeg",
     "resume_filename": "resume.pdf",
     "model_9_16": [
@@ -26,23 +27,23 @@ PERSON = {
     "dance_video_url": "https://youtu.be/vC0yDgson3Y",
     "projects": [
         {"title": "Ecommerce Site", "desc": "Responsive ecommerce UI using HTML, CSS, JS"},
-        {"title": "face Recognition", "desc": "Detects Registered Person using Python and OpenCV"},
+        {"title": "Face Recognition", "desc": "Detects registered person using Python and OpenCV"},
         {"title": "Malware Scanner Using Yara", "desc": "Detects malware-infected files via YARA rules"}
     ],
     "certifications": [
         {"title": "CYBER SECURITY AND NETWORKING 2k24", "issuer": "SYSTECH"},
-        {"title": "Diploma in Computer Programming with a focus on C, C++, and Python (2023)", "issuer": "IFC-INFOTECH Computer Education"}
+        {"title": "Diploma in C, C++, and Python (2023)", "issuer": "IFC-INFOTECH Computer Education"}
     ],
     "achievements": [
-        "Winner — Application Development (National Science Day) at KCE College (1st PRICE)2k23",
+        "Winner — Application Development (National Science Day) at KCE College (1st Prize) 2k23",
         "RUNWAY MODEL - Aura Fashion Castle 2k25",
         "Salesforce - Trailhead Agentblazer Champion and Innovator badge"
     ],
     "participations": [
-        "National-level Generative Ai Hackathon at Manakula Vinayaka College 2k23 (PONDICHERRY)",
-        "Googlethon - Generative Ai Hackathon at SNS College 2k23",
+        "National-level Generative AI Hackathon at Manakula Vinayaka College 2k23 (Puducherry)",
+        "Googlethon - Generative AI Hackathon at SNS College 2k23",
         "Material Data Science Workshop at IIT Madras 2024",
-        "Dance performances at multiple college fests",
+        "Dance performances at multiple college fests"
     ]
 }
 
@@ -406,27 +407,12 @@ INDEX_HTML = r"""
       transform:translateY(-3px);
       box-shadow:0 18px 40px rgba(15,23,42,1);
     }
-    .feedback-list{
-      margin-top:14px;
-      border-top:1px solid rgba(148,163,184,0.35);
-      padding-top:10px;
+    .feedback-status{
+      margin-top:8px;
       font-size:13px;
-      color:#d1e5ff;
     }
-    .feedback-list h4{
-      margin:0 0 6px;
-      font-size:13px;
-      text-transform:uppercase;
-      letter-spacing:.12em;
-      color:var(--muted);
-    }
-    .feedback-list ul{
-      margin:0;
-      padding-left:16px;
-    }
-    .feedback-list li{
-      margin-bottom:4px;
-    }
+    .feedback-status.ok{color:#6ee7b7;}
+    .feedback-status.err{color:#f97373;}
 
     /* LIGHTBOX */
     .lightbox{
@@ -539,11 +525,10 @@ INDEX_HTML = r"""
         <a class="btn" href="{{ person.instagram }}" target="_blank">
           <i class="fa-brands fa-instagram"></i> Instagram
         </a>
-        {% if person.github %}
+        <!-- 👇 NEW GITHUB BUTTON -->
         <a class="btn" href="{{ person.github }}" target="_blank">
           <i class="fa-brands fa-github"></i> GitHub
         </a>
-        {% endif %}
       </div>
     </div>
 
@@ -605,7 +590,7 @@ INDEX_HTML = r"""
       </ul>
     </section>
 
-    <!-- FEATURED DANCE VIDEO (title stays SAME, Dhruva title on the right) -->
+    <!-- FEATURED DANCE VIDEO (title unchanged on left, your Dhruva title on right meta) -->
     <section class="section-card" data-aos="fade-up">
       <div class="section-header">
         <h3 class="section-title">Featured Dance Video</h3>
@@ -663,22 +648,15 @@ INDEX_HTML = r"""
         <h3 class="section-title">Share Your Feedback</h3>
         <span class="section-tag">Your Thoughts</span>
       </div>
-      <textarea id="feedback-text" placeholder="How did you like this portfolio? Any suggestions, opportunities, or feedback are welcome."></textarea>
-      <button id="feedback-submit">
-        <i class="fa-solid fa-paper-plane"></i> Submit
-      </button>
 
-      {% if feedback_items %}
-      <div class="feedback-list">
-        <h4>Recent feedback</h4>
-        <ul>
-          {# show last 5 feedback lines #}
-          {% for fb in feedback_items[-5:] %}
-          <li>{{ fb }}</li>
-          {% endfor %}
-        </ul>
-      </div>
-      {% endif %}
+      <form id="feedback-form">
+        <textarea id="feedback-input"
+          placeholder="How did you like this portfolio? Any suggestions, opportunities, or feedback are welcome."></textarea>
+        <button type="submit">
+          <i class="fa-solid fa-paper-plane"></i> Submit
+        </button>
+        <div id="feedback-status" class="feedback-status"></div>
+      </form>
     </section>
 
   </div>
@@ -798,33 +776,50 @@ INDEX_HTML = r"""
       }
     });
 
-    // FEEDBACK JS: send to backend and refresh list
-    const feedbackTextarea = document.getElementById('feedback-text');
-    const feedbackButton = document.getElementById('feedback-submit');
+    // FEEDBACK FORM JS (calls /api/feedback)
+    const feedbackForm = document.getElementById('feedback-form');
+    const feedbackInput = document.getElementById('feedback-input');
+    const feedbackStatus = document.getElementById('feedback-status');
 
-    feedbackButton.addEventListener('click', async () => {
-      const message = (feedbackTextarea.value || '').trim();
-      if (!message) {
-        alert('Please type some feedback first 🙂');
+    feedbackForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = feedbackInput.value.trim();
+      if (!msg) {
+        feedbackStatus.textContent = 'Please type something before submitting.';
+        feedbackStatus.className = 'feedback-status err';
         return;
       }
+      feedbackStatus.textContent = 'Sending...';
+      feedbackStatus.className = 'feedback-status';
+
       try {
-        const res = await fetch('/feedback', {
+        const res = await fetch('/api/feedback', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message })
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({message: msg})
         });
+
         if (!res.ok) {
-          alert('Something went wrong while sending feedback.');
+          const data = await res.json().catch(() => ({}));
+          const errMsg = data.error || 'Something went wrong while sending feedback.';
+          feedbackStatus.textContent = errMsg;
+          feedbackStatus.className = 'feedback-status err';
           return;
         }
-        feedbackTextarea.value = '';
-        alert('Thank you for your feedback!');
-        // reload to show in "Recent feedback" list
-        location.reload();
+
+        const data = await res.json();
+        if (data.ok) {
+          feedbackStatus.textContent = 'Thank you! Your feedback was saved.';
+          feedbackStatus.className = 'feedback-status ok';
+          feedbackInput.value = '';
+        } else {
+          feedbackStatus.textContent = data.error || 'Something went wrong while sending feedback.';
+          feedbackStatus.className = 'feedback-status err';
+        }
       } catch (err) {
         console.error(err);
-        alert('Network error while sending feedback.');
+        feedbackStatus.textContent = 'Network error while sending feedback.';
+        feedbackStatus.className = 'feedback-status err';
       }
     });
   </script>
@@ -832,20 +827,9 @@ INDEX_HTML = r"""
 </html>
 """
 
-# ---------------- ROUTES ----------------
-
 @app.route('/')
 def index():
-    # load feedback from file so you can show it on the page
-    feedback_items = []
-    feedback_path = os.path.join('data', 'feedback.txt')
-    if os.path.exists(feedback_path):
-        with open(feedback_path, encoding='utf-8') as f:
-            for line in f:
-                line = line.strip()
-                if line:
-                    feedback_items.append(line)
-    return render_template_string(INDEX_HTML, person=PERSON, feedback_items=feedback_items)
+    return render_template_string(INDEX_HTML, person=PERSON)
 
 @app.route('/resume')
 def download_resume():
@@ -854,21 +838,27 @@ def download_resume():
         return send_from_directory(app.static_folder or 'static', PERSON["resume_filename"], as_attachment=True)
     abort(404)
 
-@app.route('/feedback', methods=['POST'])
+# ---------- FEEDBACK API: saves to data/feedback.txt ----------
+@app.route('/api/feedback', methods=['POST'])
 def save_feedback():
-    """Save feedback to a simple text file."""
     data = request.get_json(silent=True) or {}
-    message = (data.get("message") or "").strip()
+    message = (data.get('message') or '').strip()
+
     if not message:
-        return {"ok": False, "error": "Empty feedback"}, 400
+        return jsonify({"ok": False, "error": "Feedback cannot be empty."}), 400
 
     os.makedirs('data', exist_ok=True)
     feedback_path = os.path.join('data', 'feedback.txt')
 
-    with open(feedback_path, 'a', encoding='utf-8') as f:
-        f.write(message.replace('\n', ' ').strip() + "\n")
+    line = f"{datetime.utcnow().isoformat()} | {request.remote_addr or 'unknown'} | {message}\n"
+    try:
+        with open(feedback_path, 'a', encoding='utf-8') as f:
+            f.write(line)
+    except Exception as e:
+        # This is where Vercel / read-only FS will usually fail
+        return jsonify({"ok": False, "error": "Server could not save feedback."}), 500
 
-    return {"ok": True}
+    return jsonify({"ok": True})
 
 if __name__ == '__main__':
     os.makedirs('static', exist_ok=True)
