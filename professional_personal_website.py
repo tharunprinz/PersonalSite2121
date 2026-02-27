@@ -26,7 +26,7 @@ PERSON = {
     "email": "tharunr2121@gmail.com",
     "youtube": "https://www.youtube.com/@tharunr21",
     "instagram": "https://www.instagram.com/thxrun21/",
-    "profile_image": "profile.jpeg",
+    "profile_image": "profile.png",
     "resume_filename": "resume.pdf",
     "model_9_16": [
         "model1.jpeg", "model2.jpeg", "model3.jpeg",
