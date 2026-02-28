@@ -27,7 +27,7 @@ PERSON = {
     "youtube": "https://www.youtube.com/@tharunr21",
     "instagram": "https://www.instagram.com/thxrun21/",
     "profile_image": "profile.png",
-    "resume_filename": "https://drive.google.com/file/d/1N8ZqVp1kPgdXqO3GEvFr84q8OpP6voLQ/view?usp=sharing",
+    "resume_filename": "https://drive.google.com/file/d/1N8ZqVp1kPgdXqO3GEvFr84q8OpP6voLQ/preview",
     "model_9_16": [
         "model1.jpeg", "model2.jpeg", "model3.jpeg",
         "model4.jpg", "model5.jpeg", "model6.jpeg"
