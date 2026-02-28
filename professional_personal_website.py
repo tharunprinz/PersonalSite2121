@@ -555,8 +555,8 @@ INDEX_HTML = r"""
         <a class="btn primary" href="{{ person.linkedin }}" target="_blank">
           <i class="fa-brands fa-linkedin"></i> LinkedIn
         </a>
-        <a class="btn" href="{{ url_for('download_resume') }}">
-          <i class="fa-solid fa-file-arrow-down"></i> Resume
+        <a class="btn" href="{{ person.resume_filename }}" target="_blank">
+          <i class="fa-solid fa-file-lines"></i> Resume
         </a>
         <a class="btn" href="{{ person.github }}" target="_blank">
           <i class="fa-brands fa-github"></i> GitHub
@@ -931,14 +931,6 @@ def send_feedback_email(text: str, visibility: str, name: str, email: str):
 @app.route("/")
 def index():
     return render_template_string(INDEX_HTML, person=PERSON, public_feedback=PUBLIC_FEEDBACK)
-
-
-@app.route("/resume")
-def download_resume():
-    resume_path = os.path.join(app.static_folder or "static", PERSON["resume_filename"])
-    if os.path.exists(resume_path):
-        return send_from_directory(app.static_folder or "static", PERSON["resume_filename"], as_attachment=True)
-    abort(404)
 
 
 @app.route("/feedback", methods=["POST"])
